@@ -1,0 +1,41 @@
+name: Package Chrome Extension
+
+on:
+  push:
+    tags:
+      - 'v*' # Triggers on tags starting with 'v' (e.g., v1.0.1)
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Verify Version Match
+        run: |
+          # Extract version from manifest.json
+          MANIFEST_VERSION=$(jq -r '.version' manifest.json)
+          
+          # Strip the 'v' from the tag (e.g., v1.0.0 -> 1.0.0)
+          TAG_VERSION=${GITHUB_REF#refs/tags/v}
+          
+          echo "Manifest version: $MANIFEST_VERSION"
+          echo "Tag version: $TAG_VERSION"
+          
+          if [ "$MANIFEST_VERSION" != "$TAG_VERSION" ]; then
+            echo "Error: Manifest version ($MANIFEST_VERSION) does not match tag version ($TAG_VERSION)"
+            exit 1
+          fi
+
+      - name: Zip Extension
+        run: |
+          zip -r extension.zip manifest.json content.js popup.html popup.js
+          # Note: We are explicitly listing files to avoid including README or hidden git files.
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: extension.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

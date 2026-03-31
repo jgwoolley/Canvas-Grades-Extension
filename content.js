@@ -122,11 +122,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         sendResponse({ status: "alive" });
     } else if (request.action === "getGrades") {
         const grades = getGradesFromDOM();
-        console.log(grades);
-        sendResponse({ data: grades });
-
         const weights = getWeightsFromDOM();
-        console.log(weights);
+        const response = { data: { grades, weights } };
+        console.log(response);
+        sendResponse(response);
     }
     return true; // CRITICAL: This keeps the message channel open for the response
 });

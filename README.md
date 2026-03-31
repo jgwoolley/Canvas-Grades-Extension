@@ -1,1 +1,1 @@
-# Canvas-Grades-Extension
+# Canvas Grades Extension

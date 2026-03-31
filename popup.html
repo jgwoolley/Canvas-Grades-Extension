@@ -9,13 +9,19 @@
 </head>
 <body>
     <h3>Course Grades</h3>
-    <div id="grade-list">Click the button to parse grades.</div>
-    <button id="parse-btn">Parse Current Page</button>
-    <div id="download-controls" style="display: none; margin-top: 15px; display: flex; gap: 10px;">
-        <button id="download-csv" style="background: #28a745;">Download CSV</button>
-        <button id="download-json" style="background: #6c757d;">Download JSON</button>
+    <div id="help-text">Click the button to parse grades.</div>
+    <br />
+    <div>
+        <div>Assignments: <span id="assignment-number">None</span></div>
+        <div>Assignment Groups: <span id="group-number">None</span></div>
     </div>
-
+    <div style="margin-top: 15px; display: flex;">
+        <button id="parse-btn" style="background: #0037ff; color:white">Parse Current Page</button>
+        <div id="download-controls" style="display: none;">
+            <button id="download-csv" style="background: #ff0000;">Download CSV</button>
+            <button id="download-json" style="background: #ffc400;">Download JSON</button>
+        </div>
+    </div>
     <script src="popup.js"></script>
 </body>
 </html>
