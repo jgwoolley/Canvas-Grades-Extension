@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Canvas Grade Parser",
-  "version": "1.2",
+  "version": "1.3",
   "permissions": ["activeTab", "scripting"],
   "action": {
     "default_popup": "popup.html"
