@@ -34,4 +34,32 @@
  * @property {number} [percent]
  */
 
+/**
+ * @typedef {Object} Course
+ * @property {number} [course_id]
+ * @property {number} [course_name]
+ * @property {number} [href]
+ */
+
+/**
+ * @typedef {Object} StatusResponse
+ * @property {string} status
+ */
+
+/**
+ * @typedef {Object} AssignmentDataResponse
+ * @property {Assignment[]} grades
+ * @property {Group[]} groups
+ * @property {Course[]} courses
+ */
+
+/**
+ * @typedef {Object} AssignmentResponse
+ * @property {AssignmentDataResponse} [data]
+ */
+
+/**
+ * @typedef {StatusResponse | AssignmentResponse} Response
+ */
+
 export {};

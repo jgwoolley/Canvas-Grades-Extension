@@ -1,6 +1,8 @@
 /** @typedef {import("./types.js").Assignment} Assignment */
 /** @typedef {import("./types.js").Group} Group */
 /** @typedef {import("./types.js").CurrentGroup} CurrentGroup */
+/** @typedef {import("./types.js").Response} Response */
+/** @typedef {import("./types.js").Course} Course */
 
 /** @type {Assignment[]} */
 // Global variable to store fetched data
@@ -8,6 +10,9 @@ let currentGrades = []; //
 
 /** @type {Group[]} */
 let currentGroups = [];
+
+/** @type {Course[]} */
+let currentCourses = [];
 
 /** @type {CurrentGroup[]} */
 let parsedGroups = [];
@@ -52,10 +57,10 @@ function calculateGrades() {
     } else {
         let score = 0;
         let total = 0;
-        for (const grade of currentGrades) { 
-            if(!grade?.score || !grade?.total) continue;
-            score+=grade.score;
-            total+=grade.total;
+        for (const grade of currentGrades) {
+            if (!grade?.score || !grade?.total) continue;
+            score += grade.score;
+            total += grade.total;
         }
         currentGrade = score / total;
     }
@@ -69,6 +74,7 @@ document.getElementById('parse-btn').addEventListener('click', async () => {
     const assignmentNumberElement = document.getElementById('assignment-number');
     const groupNumberElement = document.getElementById('group-number');
     const currentGradeElement = document.getElementById('current-grade');
+    const courseNumberElement = document.getElementById('course-number');
     const controlsElement = document.getElementById('download-controls');
     const [tabElement] = await chrome.tabs.query({ active: true, currentWindow: true });
 
@@ -98,32 +104,39 @@ document.getElementById('parse-btn').addEventListener('click', async () => {
     }
 
     // Step 3: Now that we know the script is there, get the data
-    chrome.tabs.sendMessage(tabElement.id, { action: "getGrades" }, (response) => {
-        helpElement.innerText = "Click the button to parse grades.";
-        helpElement.style = "";
 
-        if (response && response.data) {
-            currentGrades = response.data.grades; // Save data for download
-            currentGroups = response.data.groups; // Save data for download
-            calculateGrades();
-            controlsElement.style.display = 'flex'; // Show download buttons
+    chrome.tabs.sendMessage(tabElement.id, { action: "getGrades" }, /**
+     * @param {Response | null} response
+     */(response) => {
+            helpElement.innerText = "Click the button to parse grades.";
+            helpElement.style = "";
 
-            if (currentGrades && assignmentNumberElement) {
-                assignmentNumberElement.innerText = `${currentGrades.length}`;
-            }
-            if (currentGroups && groupNumberElement) {
-                groupNumberElement.innerText = `${currentGroups.length}`;
-            }
-            if(currentGrade) {
-                currentGradeElement.innerHTML = `${Math.round(currentGrade * 10000) / 100}%`;
-            }
+            if (response && response.data) {
+                currentGrades = response.data.grades; // Save data for download
+                currentGroups = response.data.groups; // Save data for download
+                currentCourses = response.data.courses; // Save data for download
+                calculateGrades();
+                controlsElement.style.display = 'flex'; // Show download buttons
 
-        } else {
-            helpElement.innerText = "Could not parse grades. Are you on the right page?";
-            helpElement.style = "color: #ff0000;"
-            groupNumberElement.innerText = "None";
-        }
-    });
+                if (currentGrades && assignmentNumberElement) {
+                    assignmentNumberElement.innerText = `${currentGrades.length}`;
+                }
+                if (currentGroups && groupNumberElement) {
+                    groupNumberElement.innerText = `${currentGroups.length}`;
+                }
+                if (currentGrade) {
+                    currentGradeElement.innerHTML = `${Math.round(currentGrade * 10000) / 100}%`;
+                }
+                if (currentCourses && courseNumberElement) {
+                    courseNumberElement.innerText = `${currentCourses.length}`;
+                }
+
+            } else {
+                helpElement.innerText = "Could not parse grades. Are you on the right page?";
+                helpElement.style = "color: #ff0000;"
+                groupNumberElement.innerText = "None";
+            }
+        });
 });
 
 // JSON Download Logic
