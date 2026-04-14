@@ -1,5 +1,12 @@
-let currentGrades = []; // Global variable to store fetched data
-let currentWeights = []
+/** @typedef {import("./types.js").Assignment} Assignment */
+/** @typedef {import("./types.js").Group} Group */
+
+/** @type {Assignment[]} */
+// Global variable to store fetched data
+let currentGrades = []; // 
+
+/** @type {Group[]} */
+let currentGroups = [];
 
 document.getElementById('parse-btn').addEventListener('click', async () => {
     const helpElement = document.getElementById('help-text');
@@ -8,7 +15,7 @@ document.getElementById('parse-btn').addEventListener('click', async () => {
     const controlsElement = document.getElementById('download-controls');
     const [tabElement] = await chrome.tabs.query({ active: true, currentWindow: true });
 
-    if(helpElement) {
+    if (helpElement) {
         if (!tabElement.url.includes("instructure.com") && !tabElement.url.includes("canvas")) {
             helpElement.innerText = "Please go to a Canvas grades page first.";
             helpElement.style = "color: #ff0000;"
@@ -40,14 +47,14 @@ document.getElementById('parse-btn').addEventListener('click', async () => {
 
         if (response && response.data) {
             currentGrades = response.data.grades; // Save data for download
-            currentWeights = response.data.weights; // Save data for download
+            currentGroups = response.data.groups; // Save data for download
             controlsElement.style.display = 'flex'; // Show download buttons
 
-            if(currentGrades && assignmentNumberElement) {
+            if (currentGrades && assignmentNumberElement) {
                 assignmentNumberElement.innerText = `${currentGrades.length}`;
             }
-            if(currentWeights && groupNumberElement) {
-                groupNumberElement.innerText = `${currentWeights.length}`;
+            if (currentGroups && groupNumberElement) {
+                groupNumberElement.innerText = `${currentGroups.length}`;
             }
 
         } else {
@@ -60,7 +67,67 @@ document.getElementById('parse-btn').addEventListener('click', async () => {
 
 // JSON Download Logic
 document.getElementById('download-json').addEventListener('click', () => {
-    const dataStr = JSON.stringify({"grades": currentGrades, "weights": currentWeights}, null, 2);
+    /**
+     * @typedef {Group} CurrentGroup
+     * @property {number} [score]
+     * @property {number} [total]
+     * @property {number} [percent]
+     */
+
+    /** @type {Record<string, CurrentGroup>} */
+    const groups = {};
+
+    for (const group of currentGroups) {
+        /** @type {CurrentGroup} */
+        const currentGroup = JSON.parse(JSON.stringify(group));
+        currentGroup.score = 0;
+        currentGroup.total = 0;
+        currentGroup.percent = 0;
+        groups[group.group] = currentGroup;
+    }
+
+    let currentGrade = 0;
+
+    if (currentGroups.length !== 0) {
+        for (const grade of currentGrades) {
+            const group = groups[grade?.context];
+            if (!group) {
+                console.warn({ 'Message': 'Could not find group', group: group, grade: grade, });
+                continue;
+            }
+            if (grade.score == undefined || grade.total == undefined) continue;
+
+            group.score += grade.score;
+            group.total += grade.total;
+        }
+
+        for (const group of Object.values(groups)) {
+            group.percent = group.score / group.total;
+            if (group.percent) {
+                currentGrade += group.weight * group.percent;
+            } else {
+                currentGrade += group.weight;
+            }
+        }
+    } else {
+        let score = 0;
+        let total = 0;
+        for (const grade of currentGrades) { 
+            if(!grade?.score || !grade?.total) continue;
+            score+=grade.score;
+            total+=grade.total;
+        }
+        currentGrade = score / total;
+    }
+
+    const data = {
+        "grades": currentGrades,
+        "groups": currentGroups,
+        "currentGroups": Object.values(groups),
+        "currentGrade": currentGrade,
+    };
+
+    const dataStr = JSON.stringify(data, null, 2);
     const blob = new Blob([dataStr], { type: "application/json" });
     downloadBlob(blob, "canvas_grades.json");
 });

@@ -1,12 +1,19 @@
 // Function to handle the date logic
+
+/**
+ * Function to handle the date logic
+ * 
+ * @param {string | null} dateStr - Canvas date string to parse.
+ * @returns {Date | null} Parsed Date object, or null if `dateStr` is falsy or invalid.
+ */
 function parseCanvasDate(dateStr) {
-    if (!dateStr) return "N/A";
+    if (!dateStr) return null;
 
     // 1. Clean whitespace and remove the 'by'/'at' words
     let clean = dateStr.replace(/\bby\b/i, '').replace(/\bat\b/i, '').replace(/\s+/g, ' ').trim();
 
     if (clean.toLowerCase().includes("no due date") || clean === "") {
-        return "No Date";
+        return null;
     }
 
     // 2. Use Regex to pull out the components: (Month) (Day) (Time)
@@ -41,14 +48,71 @@ function parseCanvasDate(dateStr) {
     return clean;
 }
 
-// Main parsing logic
+/**
+ * @typedef {Object} CanvasHrefParts
+ * @property {number} [courses] - The course ID, if present.
+ * @property {number} [assignments] - The assignment ID, if present.
+ * @property {number} [submissions] - The submission ID, if present.
+ */
+
+/**
+ * Parses a Canvas URL and extracts numeric IDs from known path segments.
+ *
+ * Expected paths look like:
+ * - /courses/#/assignments/#
+ * - /courses/#/assignments/#/submissions/#
+ *
+ * @param {string} href - A full Canvas URL.
+ * @returns {CanvasHrefParts} An object containing extracted IDs keyed by path segment name.
+ * @throws {TypeError} If `href` is not a valid URL.
+ */
+function parseHref(href) {
+  /** @type {CanvasHrefParts} */
+  const result = { "courses" : null, "assignments" : null, "submissions" : null, };
+  const url = new URL(href);
+  const parts = url.pathname.split("/").filter(Boolean);
+
+  for (let index = 1; index < parts.length; index++) {
+    const key = parts[index - 1];
+    const value = parts[index];
+
+    if (key === "courses" || key === "assignments" || key === "submissions") {
+      result[key] = Number.parseInt(value, 10);
+    }
+  }
+
+  return result;
+}
+
+/**
+ * @typedef {Object} Assignment
+ * @property {number} [course_id] - The course ID, if present.
+ * @property {number} [assignment_id] - The assignment ID, if present.
+ * @property {number} [submission_id] - The submission ID, if present.
+ * @property {string} [href] - 
+ * @property {string} [name] - 
+ * @property {number} [score] - 
+ * @property {number} [total] - 
+ * @property {string} [context] - 
+ * @property {Date} [dueDate] - 
+ * @property {Date} [submittedDate] - 
+ */
+
+/**
+ * Parses grades from page
+ *
+ * @returns {Assignment[]}
+ */
 function getGradesFromDOM() {
+    /** @type {CanvasHrefParts[]} */
     const assignments = [];
     const rows = document.querySelectorAll('tr.student_assignment:not(.group_total)');
 
+    const pageParsedHref = parseHref(window.location.href);
+
     rows.forEach(row => {
         const titleElement = row.querySelector('th.title a');
-        const scoreElement = row.querySelector('span.original_score');
+        const originalScoreElement = row.querySelector('span.original_score');
         const scoreCell = row.querySelector('td.assignment_score');
         const contextElement = row.querySelector('div.context');
 
@@ -60,12 +124,19 @@ function getGradesFromDOM() {
             let earnedScore = earnedSpan ? earnedSpan.innerText.trim() : "";
             
             if (earnedScore !== "") {
-                earnedScore = parseFloat(earnedScore).toString();
+                earnedScore = parseFloat(earnedScore);
             } else {
-                earnedScore = "Pending";
+                earnedScore = null;
             }
 
-            let totalPoints = "0";
+            let originalScoreRaw = null;
+            let originalScore = null;
+            if(originalScoreElement) {
+                originalScoreRaw = originalScoreElement.innerText.trim();
+                originalScore = parseFloat(originalScoreRaw);
+            }
+
+            let totalPoints = null;
             const spans = scoreCell.querySelectorAll('span');
             const totalSpan = Array.from(spans).find(s => s.textContent.includes('/'));
             
@@ -73,14 +144,19 @@ function getGradesFromDOM() {
                 const text = totalSpan.textContent; // e.g., "94 / 100"
                 const match = text.match(/\/\s*([\d.]+)/);
                 if (match && match[1]) {
-                    totalPoints = match[1];
+                    totalPoints = parseFloat(match[1]);
                 }
             }
 
+            const parsedHref = parseHref(titleElement.href);
+
             assignments.push({
+                course_id: parsedHref?.courses ?? pageParsedHref?.courses,
+                assignment_id: parsedHref?.assignments ?? pageParsedHref?.assignments,
+                submission_id: parsedHref?.submissions ?? pageParsedHref?.submissions,
                 href: titleElement.href,
                 name: titleElement.innerText.trim(),
-                score: earnedScore,
+                score: earnedScore ?? originalScore,
                 total: totalPoints,
                 context: contextElement.innerText.trim(),
                 dueDate: parseCanvasDate(dueElement ? dueElement.innerText.trim() : ""),
@@ -91,29 +167,61 @@ function getGradesFromDOM() {
     return assignments;
 }
 
-function getWeightsFromDOM() {
-    const weights = [];
+/**
+ * 
+ * @param {string | null} weightRaw 
+ * @returns {float | null}
+ */
+function parsePercentage(weightRaw) {
+  const value = Number.parseFloat(weightRaw);
+  return Number.isFinite(value) ? value / 100 : null;
+}
+
+/**
+ * @typedef {Object} Group
+ * @property {string} [group]
+ * @property {string} [weightRaw]
+ * @property {number} [weight]
+ * @property {number} [course_id] - The course ID, if present.
+ */
+
+/**
+ * Parses group from page
+ *
+ * @returns {Group[]}
+ */
+function getGroupsFromDOM() {
+    /** @type {Group[]} */
+    const groups = [];
     // Target the table inside the specific weighted assignments div
-    const weightTable = document.querySelector('#assignments-not-weighted table.summary tbody');
+    const groupTable = document.querySelector('#assignments-not-weighted table.summary tbody');
     
-    if (weightTable) {
-        const rows = weightTable.querySelectorAll('tr');
+    const pageParsedHref = parseHref(window.location.href);
+
+    if (groupTable) {
+        const rows = groupTable.querySelectorAll('tr');
         rows.forEach(row => {
             const groupNameElement = row.querySelector('th');
             const weightValueElement = row.querySelector('td');
             
             if (groupNameElement && weightValueElement) {
                 const name = groupNameElement.innerText.trim();
-                const weight = weightValueElement.innerText.trim();
-                
+                const weightRaw = weightValueElement.innerText.trim();
+                const weight = parsePercentage(weightRaw);
+
                 // Don't include the "Total" row in our data array
                 if (name.toLowerCase() !== 'total') {
-                    weights.push({ group: name, weight: weight });
+                    groups.push({ 
+                        group: name, 
+                        weightRaw: weightRaw, 
+                        weight: weight,
+                        course_id: pageParsedHref?.courses,
+                    });
                 }
             }
         });
     }
-    return weights;
+    return groups;
 }
 
 // HARDENED LISTENER
@@ -122,8 +230,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         sendResponse({ status: "alive" });
     } else if (request.action === "getGrades") {
         const grades = getGradesFromDOM();
-        const weights = getWeightsFromDOM();
-        const response = { data: { grades, weights } };
+        const groups = getGroupsFromDOM();
+        const response = { data: { grades, groups } };
         console.log(response);
         sendResponse(response);
     }
