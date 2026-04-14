@@ -205,7 +205,7 @@ function getGroupsFromDOM() {
  * Parses group from page. Only works when it is open though... Should use 
  * 
  * /api/v1/users/self/favorites/courses?include[]=term&include[]=sections&sort=nickname
- *
+ * /api/v1/courses/166241/users/self?include[]=enrollments
  * @returns {Course[]}
  */
 function getCoursesFromDOM() {
