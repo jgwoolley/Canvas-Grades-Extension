@@ -68,9 +68,22 @@ function calculateGrades() {
     parsedGroups = Object.values(groups);
 }
 
+function getGradesUrlFromTabUrl(tabUrl) {
+    try {
+        const url = new URL(tabUrl);
+        const match = url.pathname.match(/^\/courses\/(\d+)/);
+        if (!match) return null;
+
+        return `${url.origin}/courses/${match[1]}/grades`;
+    } catch (e) {
+        return null;
+    }
+}
 
 document.getElementById('parse-btn').addEventListener('click', async () => {
     const helpElement = document.getElementById('help-text');
+    const gradeLinkContainer = document.getElementById('grade-link-container');
+    const gradeLink = document.getElementById('grade-link');
     const assignmentNumberElement = document.getElementById('assignment-number');
     const groupNumberElement = document.getElementById('group-number');
     const currentGradeElement = document.getElementById('current-grade');
@@ -78,17 +91,13 @@ document.getElementById('parse-btn').addEventListener('click', async () => {
     const controlsElement = document.getElementById('download-controls');
     const [tabElement] = await chrome.tabs.query({ active: true, currentWindow: true });
 
-    if (helpElement) {
-        if (!tabElement.url.includes("instructure.com") && !tabElement.url.includes("canvas")) {
-            helpElement.innerText = "Please go to a Canvas grades page first.";
-            helpElement.style = "color: #ff0000;"
-            return;
-        } else {
-            helpElement.innerText = "Click the button to parse grades.";
-            helpElement.style = "";
-        }
-    } else {
-        console.log('Could not find help element.');
+    gradeLinkContainer.style.display = 'none';
+    gradeLink.removeAttribute('href');
+
+    if (!tabElement?.url || (!tabElement.url.includes("instructure.com") && !tabElement.url.includes("canvas"))) {
+        helpElement.innerText = "Please go to a Canvas grades page first.";
+        helpElement.style = "color: #ff0000;";
+        return;
     }
 
     try {
@@ -131,33 +140,49 @@ document.getElementById('parse-btn').addEventListener('click', async () => {
                     courseNumberElement.innerText = `${currentCourses.length}`;
                 }
 
-            // Render per-group grade percentages
-            const groupGradesList = document.getElementById('group-grades-list');
-            const groupGradesItems = document.getElementById('group-grades-items');
-            if (groupGradesList && groupGradesItems) {
-                groupGradesItems.innerHTML = '';
-                if (currentGroups && currentGroups.length > 0) {
-                    const { groupsMap } = computeGroupGrades(currentGrades, currentGroups);
-                    for (const group of Object.values(groupsMap)) {
-                        const li = document.createElement('li');
-                        const pct = isFinite(group.percent) && group.percent > 0
-                            ? `${(group.percent * 100).toFixed(1)}%`
-                            : 'N/A';
-                        li.textContent = `${group.group}: ${pct}`;
-                        groupGradesItems.appendChild(li);
+                const gradesUrl = getGradesUrlFromTabUrl(tabElement.url);
+                if (gradesUrl && !tabElement.url.includes('/grades')) {
+                    helpElement.innerText = "You are not on the Grades page.";
+                    const linkText = "Open the correct Grades page";
+                    gradeLink.textContent = linkText;
+                    gradeLink.href = gradesUrl;
+                    gradeLinkContainer.style.display = 'block';
+                }
+
+                // Render per-group grade percentages
+                const groupGradesList = document.getElementById('group-grades-list');
+                const groupGradesItems = document.getElementById('group-grades-items');
+                if (groupGradesList && groupGradesItems) {
+                    groupGradesItems.innerHTML = '';
+                    if (currentGroups && currentGroups.length > 0) {
+                        const { groupsMap } = computeGroupGrades(currentGrades, currentGroups);
+                        for (const group of Object.values(groupsMap)) {
+                            const li = document.createElement('li');
+                            const pct = isFinite(group.percent) && group.percent > 0
+                                ? `${(group.percent * 100).toFixed(1)}%`
+                                : 'N/A';
+                            li.textContent = `${group.group}: ${pct}`;
+                            groupGradesItems.appendChild(li);
+                        }
+                        groupGradesList.style.display = '';
+                    } else {
+                        groupGradesList.style.display = 'none';
                     }
-                    groupGradesList.style.display = '';
-                } else {
-                    groupGradesList.style.display = 'none';
+                }
+
+            } else {
+                helpElement.innerText = "Could not parse grades. Are you on the right page?";
+                helpElement.style = "color: #ff0000;";
+                groupNumberElement.innerText = "None";
+
+                const gradesUrl = getGradesUrlFromTabUrl(tabElement.url);
+                if (gradesUrl) {
+                    gradeLink.textContent = "Open the correct Grades page";
+                    gradeLink.href = gradesUrl;
+                    gradeLinkContainer.style.display = 'block';
                 }
             }
-
-        } else {
-            helpElement.innerText = "Could not parse grades. Are you on the right page?";
-            helpElement.style = "color: #ff0000;"
-            groupNumberElement.innerText = "None";
-        }
-    });
+        });
 });
 
 /**
@@ -213,10 +238,10 @@ function computeGroupGrades(grades, groups) {
     } else {
         let score = 0;
         let total = 0;
-        for (const grade of grades) { 
-            if(!grade?.score || !grade?.total) continue;
-            score+=grade.score;
-            total+=grade.total;
+        for (const grade of grades) {
+            if (!grade?.score || !grade?.total) continue;
+            score += grade.score;
+            total += grade.total;
         }
         currentGrade = score / total;
     }
