@@ -1,5 +1,6 @@
 /** @typedef {import("./types.js").Assignment} Assignment */
 /** @typedef {import("./types.js").Group} Group */
+/** @typedef {import("./types.js").CurrentGroup} CurrentGroup */
 
 /** @type {Assignment[]} */
 // Global variable to store fetched data
@@ -8,10 +9,66 @@ let currentGrades = []; //
 /** @type {Group[]} */
 let currentGroups = [];
 
+/** @type {CurrentGroup[]} */
+let parsedGroups = [];
+
+/** @type {number | null} */
+let currentGrade = 0;
+
+function calculateGrades() {
+    /** @type {Record<string, CurrentGroup>} */
+    const groups = {};
+
+    for (const group of currentGroups) {
+        /** @type {CurrentGroup} */
+        const currentGroup = JSON.parse(JSON.stringify(group));
+        currentGroup.score = 0;
+        currentGroup.total = 0;
+        currentGroup.percent = 0;
+        groups[group.group] = currentGroup;
+    }
+
+    if (currentGroups.length !== 0) {
+        for (const grade of currentGrades) {
+            const group = groups[grade?.context];
+            if (!group) {
+                console.warn({ 'Message': 'Could not find group', group: group, grade: grade, });
+                continue;
+            }
+            if (grade.score == undefined || grade.total == undefined) continue;
+
+            group.score += grade.score;
+            group.total += grade.total;
+        }
+
+        for (const group of Object.values(groups)) {
+            group.percent = group.score / group.total;
+            if (group.percent) {
+                currentGrade += group.weight * group.percent;
+            } else {
+                currentGrade += group.weight;
+            }
+        }
+    } else {
+        let score = 0;
+        let total = 0;
+        for (const grade of currentGrades) { 
+            if(!grade?.score || !grade?.total) continue;
+            score+=grade.score;
+            total+=grade.total;
+        }
+        currentGrade = score / total;
+    }
+
+    parsedGroups = Object.values(groups);
+}
+
+
 document.getElementById('parse-btn').addEventListener('click', async () => {
     const helpElement = document.getElementById('help-text');
     const assignmentNumberElement = document.getElementById('assignment-number');
     const groupNumberElement = document.getElementById('group-number');
+    const currentGradeElement = document.getElementById('current-grade');
     const controlsElement = document.getElementById('download-controls');
     const [tabElement] = await chrome.tabs.query({ active: true, currentWindow: true });
 
@@ -48,6 +105,7 @@ document.getElementById('parse-btn').addEventListener('click', async () => {
         if (response && response.data) {
             currentGrades = response.data.grades; // Save data for download
             currentGroups = response.data.groups; // Save data for download
+            calculateGrades();
             controlsElement.style.display = 'flex'; // Show download buttons
 
             if (currentGrades && assignmentNumberElement) {
@@ -55,6 +113,9 @@ document.getElementById('parse-btn').addEventListener('click', async () => {
             }
             if (currentGroups && groupNumberElement) {
                 groupNumberElement.innerText = `${currentGroups.length}`;
+            }
+            if(currentGrade) {
+                currentGradeElement.innerHTML = `${Math.round(currentGrade * 10000) / 100}%`;
             }
 
         } else {
@@ -67,63 +128,10 @@ document.getElementById('parse-btn').addEventListener('click', async () => {
 
 // JSON Download Logic
 document.getElementById('download-json').addEventListener('click', () => {
-    /**
-     * @typedef {Group} CurrentGroup
-     * @property {number} [score]
-     * @property {number} [total]
-     * @property {number} [percent]
-     */
-
-    /** @type {Record<string, CurrentGroup>} */
-    const groups = {};
-
-    for (const group of currentGroups) {
-        /** @type {CurrentGroup} */
-        const currentGroup = JSON.parse(JSON.stringify(group));
-        currentGroup.score = 0;
-        currentGroup.total = 0;
-        currentGroup.percent = 0;
-        groups[group.group] = currentGroup;
-    }
-
-    let currentGrade = 0;
-
-    if (currentGroups.length !== 0) {
-        for (const grade of currentGrades) {
-            const group = groups[grade?.context];
-            if (!group) {
-                console.warn({ 'Message': 'Could not find group', group: group, grade: grade, });
-                continue;
-            }
-            if (grade.score == undefined || grade.total == undefined) continue;
-
-            group.score += grade.score;
-            group.total += grade.total;
-        }
-
-        for (const group of Object.values(groups)) {
-            group.percent = group.score / group.total;
-            if (group.percent) {
-                currentGrade += group.weight * group.percent;
-            } else {
-                currentGrade += group.weight;
-            }
-        }
-    } else {
-        let score = 0;
-        let total = 0;
-        for (const grade of currentGrades) { 
-            if(!grade?.score || !grade?.total) continue;
-            score+=grade.score;
-            total+=grade.total;
-        }
-        currentGrade = score / total;
-    }
-
     const data = {
         "grades": currentGrades,
         "groups": currentGroups,
-        "currentGroups": Object.values(groups),
+        "parsedGroups": Object.values(parsedGroups),
         "currentGrade": currentGrade,
     };
 

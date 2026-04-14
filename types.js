@@ -27,4 +27,11 @@
  * @property {number} [course_id] - The course ID, if present.
  */
 
+/**
+ * @typedef {Group} CurrentGroup
+ * @property {number} [score]
+ * @property {number} [total]
+ * @property {number} [percent]
+ */
+
 export {};

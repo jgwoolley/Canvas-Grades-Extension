@@ -1,5 +1,9 @@
 // Function to handle the date logic
 
+/** @typedef {import("./types.js").Assignment} Assignment */
+/** @typedef {import("./types.js").Group} Group */
+/** @typedef {import("./types.js").CurrentGroup} CurrentGroup */
+
 /**
  * Function to handle the date logic
  * 
@@ -49,13 +53,6 @@ function parseCanvasDate(dateStr) {
 }
 
 /**
- * @typedef {Object} CanvasHrefParts
- * @property {number} [courses] - The course ID, if present.
- * @property {number} [assignments] - The assignment ID, if present.
- * @property {number} [submissions] - The submission ID, if present.
- */
-
-/**
  * Parses a Canvas URL and extracts numeric IDs from known path segments.
  *
  * Expected paths look like:
@@ -83,20 +80,6 @@ function parseHref(href) {
 
   return result;
 }
-
-/**
- * @typedef {Object} Assignment
- * @property {number} [course_id] - The course ID, if present.
- * @property {number} [assignment_id] - The assignment ID, if present.
- * @property {number} [submission_id] - The submission ID, if present.
- * @property {string} [href] - 
- * @property {string} [name] - 
- * @property {number} [score] - 
- * @property {number} [total] - 
- * @property {string} [context] - 
- * @property {Date} [dueDate] - 
- * @property {Date} [submittedDate] - 
- */
 
 /**
  * Parses grades from page
@@ -176,14 +159,6 @@ function parsePercentage(weightRaw) {
   const value = Number.parseFloat(weightRaw);
   return Number.isFinite(value) ? value / 100 : null;
 }
-
-/**
- * @typedef {Object} Group
- * @property {string} [group]
- * @property {string} [weightRaw]
- * @property {number} [weight]
- * @property {number} [course_id] - The course ID, if present.
- */
 
 /**
  * Parses group from page
