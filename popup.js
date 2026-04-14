@@ -57,6 +57,27 @@ document.getElementById('parse-btn').addEventListener('click', async () => {
                 groupNumberElement.innerText = `${currentGroups.length}`;
             }
 
+            // Render per-group grade percentages
+            const groupGradesList = document.getElementById('group-grades-list');
+            const groupGradesItems = document.getElementById('group-grades-items');
+            if (groupGradesList && groupGradesItems) {
+                groupGradesItems.innerHTML = '';
+                if (currentGroups && currentGroups.length > 0) {
+                    const { groupsMap } = computeGroupGrades(currentGrades, currentGroups);
+                    for (const group of Object.values(groupsMap)) {
+                        const li = document.createElement('li');
+                        const pct = isFinite(group.percent) && group.percent > 0
+                            ? `${(group.percent * 100).toFixed(1)}%`
+                            : 'N/A';
+                        li.textContent = `${group.group}: ${pct}`;
+                        groupGradesItems.appendChild(li);
+                    }
+                    groupGradesList.style.display = '';
+                } else {
+                    groupGradesList.style.display = 'none';
+                }
+            }
+
         } else {
             helpElement.innerText = "Could not parse grades. Are you on the right page?";
             helpElement.style = "color: #ff0000;"
@@ -65,32 +86,38 @@ document.getElementById('parse-btn').addEventListener('click', async () => {
     });
 });
 
-// JSON Download Logic
-document.getElementById('download-json').addEventListener('click', () => {
-    /**
-     * @typedef {Group} CurrentGroup
-     * @property {number} [score]
-     * @property {number} [total]
-     * @property {number} [percent]
-     */
+/**
+ * @typedef {Group} CurrentGroup
+ * @property {number} [score]
+ * @property {number} [total]
+ * @property {number} [percent]
+ */
 
+/**
+ * Computes per-group scores/percentages and overall grade from raw grades and groups.
+ *
+ * @param {Assignment[]} grades
+ * @param {Group[]} groups
+ * @returns {{ groupsMap: Record<string, CurrentGroup>, currentGrade: number }}
+ */
+function computeGroupGrades(grades, groups) {
     /** @type {Record<string, CurrentGroup>} */
-    const groups = {};
+    const groupsMap = {};
 
-    for (const group of currentGroups) {
+    for (const group of groups) {
         /** @type {CurrentGroup} */
         const currentGroup = JSON.parse(JSON.stringify(group));
         currentGroup.score = 0;
         currentGroup.total = 0;
         currentGroup.percent = 0;
-        groups[group.group] = currentGroup;
+        groupsMap[group.group] = currentGroup;
     }
 
     let currentGrade = 0;
 
-    if (currentGroups.length !== 0) {
-        for (const grade of currentGrades) {
-            const group = groups[grade?.context];
+    if (groups.length !== 0) {
+        for (const grade of grades) {
+            const group = groupsMap[grade?.context];
             if (!group) {
                 console.warn({ 'Message': 'Could not find group', group: group, grade: grade, });
                 continue;
@@ -101,7 +128,7 @@ document.getElementById('download-json').addEventListener('click', () => {
             group.total += grade.total;
         }
 
-        for (const group of Object.values(groups)) {
+        for (const group of Object.values(groupsMap)) {
             group.percent = group.score / group.total;
             if (group.percent) {
                 currentGrade += group.weight * group.percent;
@@ -112,7 +139,7 @@ document.getElementById('download-json').addEventListener('click', () => {
     } else {
         let score = 0;
         let total = 0;
-        for (const grade of currentGrades) { 
+        for (const grade of grades) { 
             if(!grade?.score || !grade?.total) continue;
             score+=grade.score;
             total+=grade.total;
@@ -120,10 +147,17 @@ document.getElementById('download-json').addEventListener('click', () => {
         currentGrade = score / total;
     }
 
+    return { groupsMap, currentGrade };
+}
+
+// JSON Download Logic
+document.getElementById('download-json').addEventListener('click', () => {
+    const { groupsMap, currentGrade } = computeGroupGrades(currentGrades, currentGroups);
+
     const data = {
         "grades": currentGrades,
         "groups": currentGroups,
-        "currentGroups": Object.values(groups),
+        "currentGroups": Object.values(groupsMap),
         "currentGrade": currentGrade,
     };
 
