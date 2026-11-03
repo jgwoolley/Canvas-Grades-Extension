@@ -1,0 +1,37 @@
+:root { --bg:#f6f7f9; --card:#fff; --text:#1d2433; --muted:#667085; --line:#e4e7ec; --accent:#2563eb; --warn:#b45309; }
+@media (prefers-color-scheme: dark) {
+    :root { --bg:#11151c; --card:#1a202b; --text:#e8ecf3; --muted:#95a0b3; --line:#2b3342; --accent:#6ea0ff; --warn:#fbbf24; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; padding: 24px 32px; background: var(--bg); color: var(--text); font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
+header { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: center; }
+h1 { font-size: 20px; margin: 0; }
+.controls { display: flex; gap: 8px; }
+select, input { font: inherit; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--text); }
+input { min-width: 260px; }
+.muted, .empty { color: var(--muted); }
+table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+th, td { padding: 8px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+th { position: sticky; top: 0; background: var(--card); color: var(--muted); font-weight: 500; cursor: pointer; user-select: none; white-space: nowrap; }
+th.sorted::after { content: " ▲"; font-size: 10px; }
+th.sorted.desc::after { content: " ▼"; }
+.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr.pending td { color: var(--muted); }
+tr.warn td:first-child { box-shadow: inset 3px 0 var(--warn); }
+a { color: var(--accent); }
+#summary { display: flex; gap: 12px; flex-wrap: wrap; margin: 12px 0; }
+.tile { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px 16px; min-width: 150px; }
+.tile b { display: block; font-size: 22px; }
+.tile span { color: var(--muted); font-size: 12px; }
+#groups { margin-bottom: 6px; }
+#groups tbody tr { cursor: pointer; }
+#groups tbody tr:hover, #groups tbody tr.active { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+#groups th { cursor: default; }
+.hint { font-size: 12px; margin: 0 0 18px; }
+#summary { align-items: baseline; }
+.tile.secondary { background: none; border-color: transparent; padding: 4px 8px; min-width: 0; }
+.tile.secondary b { font-size: 14px; font-weight: 500; color: var(--muted); }
+#notices { margin: 4px 0 14px; padding: 10px 14px; background: var(--card); border: 1px solid var(--line); border-left: 3px solid var(--warn); border-radius: 10px; }
+#notices h2 { font-size: 13px; margin: 0 0 4px; color: var(--warn); }
+#notices ul { margin: 0 0 8px; padding-left: 18px; }
+#notices ul:last-child { margin-bottom: 0; }

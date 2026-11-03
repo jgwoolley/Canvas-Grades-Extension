@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+    <title>Canvas grades summary</title>
+    <link rel="stylesheet" href="popup.css">
+    <link rel="stylesheet" href="summary.css">
+    <link rel="stylesheet" href="nav.css">
+</head>
+<body>
+    <nav id="nav"></nav>
+    <header>
+        <h1>Canvas grades summary</h1>
+        <span class="muted" id="summary-line"></span>
+    </header>
+    <div id="status" hidden></div>
+    <table id="courses">
+        <thead><tr>
+            <th>Course</th><th class="num">Grade</th><th class="num"></th><th class="num">Range</th>
+            <th class="num">Canvas</th><th class="num">Graded</th><th class="num" title="Items not counted yet / parse warnings">Notes</th>
+            <th>Captured</th><th></th>
+        </tr></thead>
+        <tbody></tbody>
+    </table>
+    <p class="empty" id="empty" hidden>No courses captured yet. Open a Canvas grades page and use the extension popup.</p>
+    <div class="row" id="export-controls">
+        <button id="download-raw" title="Latest raw page HTML + parsed data + estimate per course, for review by an agent">Export raw for review</button>
+        <button id="download-json">JSON</button>
+        <button id="download-csv">CSV</button>
+        <button id="clear-all" class="danger">Clear</button>
+    </div>
+    <script src="grading.js"></script>
+    <script src="common.js"></script>
+    <script src="nav.js"></script>
+    <script src="summary.js"></script>
+</body>
+</html>

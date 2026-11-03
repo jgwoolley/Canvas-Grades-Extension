@@ -1,38 +1,31 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <style>
-        body { width: 300px; font-family: sans-serif; padding: 10px; }
-        .assignment { margin-bottom: 8px; border-bottom: 1px solid #ccc; padding-bottom: 4px; }
-        .score { font-weight: bold; color: #2c3e50; }
-    </style>
+    <meta charset="utf-8">
+    <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+    <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-    <h3>Course Grades</h3>
-    <div id="help-text">Click the button to parse grades.</div>
-    <div id="grade-link-container" style="display:none; margin-top:8px;">
-        <a id="grade-link" href="#" target="_blank" rel="noopener noreferrer">
-            Open the Grades page
-        </a>
+    <header>
+        <h1>Canvas Grades</h1>
+        <span class="muted" id="summary-line"></span>
+    </header>
+    <div id="status">Open a Canvas course grades page to capture it.</div>
+    <div id="grade-link-container" style="display:none; margin-bottom:10px;">
+        <a id="grade-link" href="#" target="_blank" rel="noopener noreferrer">Open the correct Grades page</a>
     </div>
-    <br />
-    <div>
-        <div>Courses: <span id="course-number">None</span></div>
-        <div>Assignments: <span id="assignment-number">None</span></div>
-        <div>Assignment Groups: <span id="group-number">None</span></div>
-        <div>Current Grade: <span id="current-grade">None</span></div>
+    <div class="row">
+        <button id="parse-btn" class="primary grow">Capture this page</button>
     </div>
-    <div id="group-grades-list" style="display: none; margin-top: 10px;">
-        <strong>Group Grades</strong>
-        <ul id="group-grades-items" style="margin: 5px 0; padding-left: 18px;"></ul>
+    <div id="courses"></div>
+    <div class="row" id="export-controls">
+        <button id="download-raw" class="grow" title="Latest raw page HTML + parsed data + estimate per course, for review by an agent">Export raw for review</button>
+        <button id="download-json">JSON</button>
+        <button id="download-csv">CSV</button>
+        <button id="clear-all" class="danger">Clear</button>
     </div>
-    <div style="margin-top: 15px; display: flex;">
-        <button id="parse-btn" style="background: #0037ff; color:white">Parse Current Page</button>
-        <div id="download-controls" style="display: none;">
-            <button id="download-csv" style="background: #ff0000;">Download CSV</button>
-            <button id="download-json" style="background: #ffc400;">Download JSON</button>
-        </div>
-    </div>
+    <script src="grading.js"></script>
+    <script src="common.js"></script>
     <script src="popup.js"></script>
 </body>
 </html>

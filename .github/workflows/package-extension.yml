@@ -30,8 +30,8 @@ jobs:
 
       - name: Zip Extension
         run: |
-          zip -r extension.zip manifest.json content.js popup.html popup.js
-          # Note: We are explicitly listing files to avoid including README or hidden git files.
+          # Everything in the repo except docs, git/CI files, and any exported grade data.
+          zip -r extension.zip . -x 'README.md' '.git/*' '.github/*' '.gitignore' 'canvas_raw*' 'canvas_grades*' 'extension.zip'
 
       - name: Create Release
         uses: softprops/action-gh-release@v2

@@ -1,0 +1,19 @@
+body { width: auto; max-width: 1200px; margin: 0 auto; padding: 24px 32px; font-size: 14px; }
+h1 { font-size: 20px; }
+#courses { display: table; width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; margin: 14px 0 18px; font-size: 14px; }
+#courses th, #courses td { padding: 10px 12px; border-bottom: 1px solid var(--line); }
+#courses tbody tr:last-child td { border-bottom: 0; }
+#courses tbody tr:hover { background: color-mix(in srgb, var(--accent) 7%, transparent); }
+#courses th:first-child, #courses td:first-child { text-align: left; }
+#courses th, #courses td { text-align: left; }
+#courses .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+#courses .name { font-weight: 600; }
+#courses .name a { color: var(--text); text-decoration: none; }
+#courses .name a:hover { color: var(--accent); text-decoration: underline; }
+#courses .grade { font-size: 16px; font-weight: 700; }
+#courses .muted { color: var(--muted); }
+#courses .warn-cell { color: var(--warn); }
+.row-actions { display: flex; gap: 6px; justify-content: flex-end; }
+.row-actions button { padding: 3px 8px; font-size: 12px; white-space: nowrap; }
+.empty { text-align: center; padding: 24px 0; }
+#export-controls { justify-content: flex-start; }

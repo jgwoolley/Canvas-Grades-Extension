@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+    <title>Parsed assignments</title>
+    <link rel="stylesheet" href="course.css">
+    <link rel="stylesheet" href="nav.css">
+</head>
+<body>
+    <nav id="nav"></nav>
+    <header>
+        <h1 id="title">Parsed assignments</h1>
+        <div class="controls">
+            <input id="filter" type="search" placeholder="Filter by name or group…">
+            <select id="state">
+                <option value="all">All</option>
+                <option value="graded">Graded</option>
+                <option value="pending">Pending</option>
+            </select>
+        </div>
+    </header>
+    <p class="muted" id="meta"></p>
+    <section id="summary"></section>
+    <section id="notices" hidden></section>
+    <table id="groups">
+        <thead><tr>
+            <th>Group</th><th class="num">Weight</th><th class="num">Graded</th><th class="num">Pending</th>
+            <th class="num">Points</th><th class="num">Grade</th>
+        </tr></thead>
+        <tbody></tbody>
+    </table>
+    <p class="muted hint">Click a group to filter the assignments below.</p>
+    <table id="table">
+        <thead><tr>
+            <th data-key="name">Assignment</th>
+            <th data-key="context">Group</th>
+            <th data-key="score" class="num">Score</th>
+            <th data-key="percent" class="num">%</th>
+            <th data-key="dueDate">Due</th>
+            <th data-key="submittedDate">Submitted</th>
+        </tr></thead>
+        <tbody></tbody>
+    </table>
+    <p class="empty" id="empty" hidden>No assignments match.</p>
+    <script src="grading.js"></script>
+    <script src="nav.js"></script>
+    <script src="course.js"></script>
+</body>
+</html>

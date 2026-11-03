@@ -117,18 +117,15 @@ function getGradesFromDOM() {
         if (titleElement && scoreCell) {
             const earnedSpan = scoreCell.querySelector('.original_points');
             let earnedScore = earnedSpan ? earnedSpan.innerText.trim() : "";
-
-            if (earnedScore !== "") {
-                earnedScore = parseFloat(earnedScore);
-            } else {
-                earnedScore = null;
-            }
+            earnedScore = earnedScore !== "" ? parseFloat(earnedScore) : null;
+            if (Number.isNaN(earnedScore)) earnedScore = null;
 
             let originalScoreRaw = null;
             let originalScore = null;
             if (originalScoreElement) {
                 originalScoreRaw = originalScoreElement.innerText.trim();
                 originalScore = parseFloat(originalScoreRaw);
+                if (Number.isNaN(originalScore)) originalScore = null;
             }
 
             let totalPoints = null;
@@ -143,6 +140,11 @@ function getGradesFromDOM() {
                 }
             }
 
+            // Partially graded quizzes (auto-graded part only) and unposted grades are not final.
+            const submissionStatus = (row.querySelector('.submission_status')?.textContent || '').trim();
+            const notPosted = /has not posted/i.test(scoreCell.innerText);
+            const incomplete = submissionStatus === 'pending_review' || row.dataset.pending_quiz === 'true' || notPosted;
+
             const parsedHref = parseHref(titleElement.href);
 
             assignments.push({
@@ -152,8 +154,11 @@ function getGradesFromDOM() {
                 href: titleElement.href,
                 name: titleElement.innerText.trim(),
                 score: earnedScore ?? originalScore,
+                incomplete,
+                submissionStatus,
+                scoreRaw: scoreCell.innerText.replace(/\s+/g, ' ').trim(),
                 total: totalPoints,
-                context: contextElement.innerText.trim(),
+                context: contextElement ? contextElement.innerText.trim() : "",
                 dueDate: parseCanvasDate(dueElement ? dueElement.innerText.trim() : ""),
                 submittedDate: parseCanvasDate(submittedElement ? submittedElement.innerText.trim() : ""),
             });
@@ -233,25 +238,74 @@ function getCoursesFromDOM() {
 }
 
 /**
- * 
+ * Course id / name / Canvas-reported grade for the current page.
+ */
+function getCourseInfoFromDOM() {
+    const courseId = parseHref(window.location.href)?.courses ?? null;
+    // Title is "Grades for <student>: <course>"; course names may contain colons, so split on the first.
+    const m = document.title.match(/^Grades(?: for [^:]*)?:\s*(.+)$/);
+    let name = m ? m[1].trim() : null;
+    if (!name) {
+        const crumb = [...document.querySelectorAll('#breadcrumbs a')]
+            .find(a => new RegExp(`/courses/${courseId}/?$`).test(a.getAttribute('href') || ''));
+        name = crumb ? crumb.innerText.trim() : null;
+    }
+    if (!name || /^(grades?|home|dashboard)$/i.test(name)) name = courseId ? `Course ${courseId}` : null;
+
+    const gradeEl = document.querySelector('.final_grade .grade, #student-grades-final, .student_assignment.final_grade .grade');
+    const canvasReportedGrade = gradeEl ? gradeEl.innerText.replace(/\s+/g, ' ').trim() : null;
+    return { courseId, name, canvasReportedGrade };
+}
+
+/**
+ * Raw snapshot of the page pieces the parser reads, so the parse can be audited later.
+ * `rows` pairs every table row (including group totals, which are not parsed) with its text.
+ */
+function getRawFromDOM() {
+    const squash = str => str.replace(/\s+/g, ' ').replace(/> </g, '><').trim();
+    const grab = sel => {
+        const el = document.querySelector(sel);
+        return el ? squash(el.outerHTML) : null;
+    };
+    const rows = [...document.querySelectorAll('#grades_summary tbody tr')].map(tr => ({
+        parsedAsAssignment: tr.matches('tr.student_assignment:not(.group_total)'),
+        id: tr.id || null,
+        text: tr.innerText.replace(/\s+/g, ' ').trim(),
+        html: squash(tr.outerHTML),
+    }));
+    const content = document.querySelector('#content');
+    return {
+        url: window.location.href,
+        title: document.title,
+        capturedAt: new Date().toISOString(),
+        pageText: content ? content.innerText.replace(/[ \t]+/g, ' ').replace(/\n\s*\n+/g, '\n').trim().slice(0, 30000) : null,
+        groupsHtml: grab('#assignments-not-weighted'),
+        finalGradeHtml: grab('.student_assignment.final_grade'),
+        rows,
+    };
+}
+
+/**
  * @returns {AssignmentResponse}
  */
 function getResponseFromDOM() {
     const grades = getGradesFromDOM();
     const groups = getGroupsFromDOM();
     const courses = getCoursesFromDOM();
-    
-    return { data: { grades, groups, courses } };
+    const course = getCourseInfoFromDOM();
+    const raw = getRawFromDOM();
+
+    return { data: { grades, groups, courses, course, raw } };
 }
 
-// HARDENED LISTENER
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === "ping") {
-        sendResponse({ status: "alive" });
-    } else if (request.action === "getGrades") {
-        const response = getResponseFromDOM();
-        console.log(response);
-        sendResponse(response);
-    }
-    return true; // CRITICAL: This keeps the message channel open for the response
-});
+if (!window.__canvasGradeParserLoaded) {
+    window.__canvasGradeParserLoaded = true;
+    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+        if (request.action === "ping") {
+            sendResponse({ status: "alive" });
+        } else if (request.action === "getGrades") {
+            sendResponse(getResponseFromDOM());
+        }
+        return true; // keep the message channel open for the response
+    });
+}
